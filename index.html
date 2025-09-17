@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-
+  <meta charset="UTF-8" />
   <title>What's the Cost?</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#329926" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-  <!-- Styles -->
+  <!-- PWA / App polish (we'll add the files in Step 2) -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
   <style>
     :root{
       --bg:#f7f7f7;
@@ -19,186 +25,206 @@
     }
 
     html,body{ background:var(--bg); }
-
-    body {
+    body{
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      max-width: 860px;
-      margin: 40px auto;
-      padding: 0 20px 40px;
       color: var(--text);
       line-height: 1.6;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
     }
 
-    h1{ font-size: 26px; margin: 6px 0 18px; }
-    h2{ margin: 22px 0 10px; }
-    h3{ margin: 16px 0 8px; color: var(--muted); font-weight:600; }
+    header{ padding: 18px 0 8px; }
+    h1{ font-size: clamp(22px, 5vw, 28px); margin: 0; }
+    p.lead{ color: var(--muted); margin: 6px 0 0; }
 
     .card{
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 14px;
       box-shadow: var(--shadow);
-      padding: 18px 18px 22px;
-      margin-top: 16px;
+      padding: 18px 16px 20px;
+      margin: 16px 0;
     }
 
-    .row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:14px 18px;
-      align-items:center;
-      margin: 8px 0 4px;
+    .grid{
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 12px;
+      align-items: end;
+    }
+    @media (max-width: 680px){
+      .grid{ grid-template-columns: 1fr 1fr; }
+      .grid > .full { grid-column: 1/-1; }
+    }
+    @media (max-width: 420px){
+      .grid{ grid-template-columns: 1fr; }
     }
 
     label{
-      display:flex;
-      align-items:center;
-      gap:8px;
+      display:block;
       color: var(--muted);
       font-weight:600;
+      margin-bottom: 4px;
     }
-
     input[type="number"], input[type="text"]{
-      padding: 10px 12px;
-      font-size: 16px;
+      padding: 12px 14px;
+      font-size: 17px;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 10px;
       background:#fff;
-      width: 160px;
+      width: 100%;
+      box-sizing: border-box;
     }
-
-    input[type="text"]{ width: 300px; max-width: 100%; }
-
     button{
-      padding: 10px 16px;
-      font-size: 15px;
+      padding: 13px 16px;
+      font-size: 16px;
       background: var(--primary);
-      color: white;
+      color: #fff;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
       transition: transform .02s ease, background .15s ease;
+      width: 100%;
     }
     button:hover{ background: var(--primary-hover); }
     button:active{ transform: translateY(1px); }
+    .btn-secondary{ background:#e9e9e9; color:#111; }
 
-    .btn-secondary{
-      background:#e9e9e9;
-      color:#111;
-    }
-
-    .result{
-      margin-top: 14px;
-      font-size: 18px;
-    }
-
+    .result{ margin-top: 10px; font-size: 18px; }
     .gain-badge{
-      display:inline-block;
-      font-size: 13px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      margin-top: 6px;
-      background: #e9f6ec;
-      color: #145a1a;
-      border:1px solid #cfe8d3;
-      font-weight:600;
+      display:inline-block; font-size:13px; padding:4px 8px; border-radius:999px;
+      margin-top:6px; background:#e9f6ec; color:#145a1a; border:1px solid #cfe8d3; font-weight:600;
     }
-    .loss-badge{
-      background: #fdeaea;
-      color:#7a1b1b;
-      border:1px solid #f5c8c8;
-    }
+    .loss-badge{ background:#fdeaea; color:#7a1b1b; border-color:#f5c8c8; }
 
-    hr{ border:0; border-top:1px solid var(--border); margin:18px 0; }
+    /* Collapsible Investment Pot */
+    details{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0;
+      background:#fff;
+    }
+    summary{
+      list-style: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-weight: 700;
+    }
+    summary::-webkit-details-marker { display: none; }
+    .chevron{ transition: transform .2s ease; }
+    details[open] .chevron{ transform: rotate(90deg); }
+    .summary-sub{
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 14px;
+    }
+    .panel{
+      border-top:1px solid var(--border);
+      padding: 14px 16px 18px;
+    }
 
     table{
       width:100%;
       border-collapse: collapse;
       margin-top: 8px;
-      font-size: 14px;
+      font-size: 15px;
     }
-    th, td{
-      padding:10px 8px;
-      border-bottom:1px solid var(--border);
-    }
-    thead th{
-      font-weight:700;
-      color:#444;
-      background:#fafafa;
-    }
+    th, td{ padding:10px 8px; border-bottom:1px solid var(--border); }
+    thead th{ font-weight:700; color:#444; background:#fafafa; }
     tbody tr:nth-child(even){ background:#fcfcfc; }
     tbody tr:hover{ background:#f5f7f5; }
-    td:last-child{ width: 1%; white-space: nowrap; }
+    td:last-child{ width:1%; white-space:nowrap; }
 
-    @media (max-width: 520px){
-      .row{ gap:10px 12px; }
-      input[type="number"]{ width: 130px; }
-    }
+    .tip{ color:#666; font-size: 14px; margin-top:6px; }
   </style>
 </head>
 <body>
+  <header>
+    <h1>What's the Cost?</h1>
+    <p class="lead">See the true cost of spending vs investing.</p>
+  </header>
 
- <h1>What's the Cost?</h1>
-
+  <!-- Calculator Card -->
   <div class="card">
-    <p>Enter a purchase amount and see what it would be worth if invested instead.</p>
-
-    <div class="row">
-      <label>Purchase (€)
+    <div class="grid">
+      <div class="full">
+        <label for="purchase">Purchase (€)</label>
         <input type="number" id="purchase" placeholder="e.g. 100" />
-      </label>
+      </div>
 
-      <label>Years
+      <div>
+        <label for="years">Years</label>
         <input type="number" id="years" value="10" />
-      </label>
+      </div>
 
-      <label>Annual interest (%)
+      <div>
+        <label for="rate">Annual interest (%)</label>
         <input type="number" id="rate" value="5" />
-      </label>
+      </div>
 
-      <button onclick="calculate()">Calculate</button>
+      <div class="full">
+        <button onclick="calculate()">Calculate</button>
+      </div>
     </div>
 
     <div id="result" class="result"></div>
   </div>
 
+  <!-- Investment Pot Card -->
   <div class="card">
-    <h2>Investment Pot</h2>
+    <details id="potPanel">
+      <summary>
+        <span>
+          Investment Pot
+          <span class="summary-sub">— Total today: <strong id="potSummaryTotal">€0.00</strong></span>
+        </span>
+        <span class="chevron">›</span>
+      </summary>
 
-    <div class="row">
-      <label>Pot annual rate (%)
-        <input type="number" id="potRate" value="5" />
-      </label>
+      <div class="panel">
+        <div class="grid">
+          <div>
+            <label for="potRate">Pot annual rate (%)</label>
+            <input type="number" id="potRate" value="5" />
+          </div>
 
-      <label>Note (optional)
-        <input type="text" id="potNote" placeholder="e.g. Skipped hotel night" />
-      </label>
+          <div class="full">
+            <label for="potNote">Note (optional)</label>
+            <input type="text" id="potNote" placeholder="e.g. Skipped hotel night" />
+          </div>
 
-      <button type="button" onclick="addToPotFromCalculator()">➕ Add current purchase to pot</button>
-    </div>
+          <div class="full">
+            <button type="button" onclick="addToPotFromCalculator()">➕ Add current purchase to pot</button>
+          </div>
+        </div>
 
-    <small style="display:block;margin-top:6px;color:#666;">
-      Tip: to record a withdrawal, enter a negative purchase (e.g. <strong>-50</strong>) and click the button.
-    </small>
+        <p class="tip">
+          Tip: to record a withdrawal, enter a negative purchase (e.g. <strong>-50</strong>) and click the button.
+        </p>
 
-    <h3 style="margin-top:14px;">Pot entries</h3>
-    <table id="potTable">
-      <thead>
-        <tr>
-          <th style="text-align:left;">Date</th>
-          <th style="text-align:right;">Amount</th>
-          <th style="text-align:left;">Note</th>
-          <th style="text-align:right;">Value Today</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="potBody"></tbody>
-    </table>
+        <table id="potTable">
+          <thead>
+            <tr>
+              <th style="text-align:left;">Date</th>
+              <th style="text-align:right;">Amount</th>
+              <th style="text-align:left;">Note</th>
+              <th style="text-align:right;">Value Today</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="potBody"></tbody>
+        </table>
 
-    <h3 id="potTotal" style="margin-top:14px;"></h3>
+        <h3 id="potTotal" style="margin-top:14px;"></h3>
+      </div>
+    </details>
   </div>
 
-  <!-- Script -->
   <script>
     // Shared currency formatter
     const fmt = new Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR' });
@@ -209,12 +235,14 @@
       const years = parseInt(document.getElementById('years').value);
       const rate = parseFloat(document.getElementById('rate').value) / 100;
 
+      const resultEl = document.getElementById('result');
+
       if (isNaN(purchase) || purchase === 0) {
-        document.getElementById('result').textContent = "⚠️ Please enter a non-zero purchase amount (use negative for withdrawal).";
+        resultEl.textContent = "⚠️ Please enter a non-zero purchase amount (use negative for withdrawal).";
         return;
       }
       if (isNaN(years) || years < 0 || isNaN(rate) || rate < 0) {
-        document.getElementById('result').textContent = "⚠️ Please enter valid years and interest.";
+        resultEl.textContent = "⚠️ Please enter valid years and interest.";
         return;
       }
 
@@ -226,7 +254,7 @@
       const badgeClass = gain >= 0 ? 'gain-badge' : 'gain-badge loss-badge';
       const badgeText  = `${gain >= 0 ? 'Gain' : 'Loss'}: ${fmt.format(gain)} • ${returnPercent.toFixed(1)}% total`;
 
-      document.getElementById('result').innerHTML =
+      resultEl.innerHTML =
         `If invested, ${fmt.format(purchase)} could grow to ${fmt.format(futureValue)} in ${years} years at ${(rate*100).toFixed(1)}% interest.<br>
          <span class="${badgeClass}">${badgeText}</span>`;
     }
@@ -303,8 +331,10 @@
         tbody.appendChild(tr);
       });
 
-      document.getElementById('potTotal').textContent =
-        `Total pot value today: ${fmt.format(total)} (at ${(potRate||0).toFixed(2)}% p.a.)`;
+      // Update total labels (summary + inside panel)
+      const totalText = `Total today: ${fmt.format(total)} (at ${(potRate||0).toFixed(2)}% p.a.)`;
+      document.getElementById('potTotal').textContent = totalText;
+      document.getElementById('potSummaryTotal').textContent = fmt.format(total);
     }
 
     function addToPotFromCalculator(){
