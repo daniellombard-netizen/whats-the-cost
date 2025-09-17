@@ -4,26 +4,49 @@
   <meta charset="UTF-8" />
   <title>What's the Cost?</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <link rel="manifest" href="manifest.webmanifest" />
-<link rel="apple-touch-icon" href="icon-192.png" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="theme-color" content="#329926" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-  <!-- PWA / App polish (we'll add the files in Step 2) -->
+  <!-- PWA / App polish -->
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
   <style>
+    /* ---------- THEMES (no green) ---------- */
     :root{
-      --bg:#f7f7f7;
-      --card:#ffffff;
-      --text:#222;
-      --muted:#666;
-      --primary:#329926;
-      --primary-hover:#26731c;
-      --border:#e6e6e6;
-      --shadow:0 8px 24px rgba(0,0,0,0.06);
+      --bg:#f3f4f6;          /* page background */
+      --card:#ffffff;        /* card background */
+      --text:#111827;        /* main text */
+      --muted:#6b7280;       /* muted text */
+      --border:#e5e7eb;      /* borders */
+      --shadow:0 8px 24px rgba(0,0,0,.06);
+
+      /* Primary (Ocean blue) */
+      --primary:#2563eb;
+      --primary-hover:#1d4ed8;
+
+      /* Gain/Loss badges (blue for gain, soft red for loss) */
+      --pos-bg:#e8f0fe; --pos-fg:#1e3a8a; --pos-border:#bfdbfe;
+      --neg-bg:#fef2f2; --neg-fg:#7f1d1d; --neg-border:#fecaca;
+    }
+
+    /* Plum theme */
+    :root[data-theme="plum"]{
+      --primary:#7c3aed;
+      --primary-hover:#6d28d9;
+      --pos-bg:#f3e8ff; --pos-fg:#4c1d95; --pos-border:#e9d5ff;
+      --neg-bg:#fef2f2; --neg-fg:#7f1d1d; --neg-border:#fecaca;
+      --theme-name:"Plum";
+    }
+
+    /* Slate theme (neutral greys) */
+    :root[data-theme="slate"]{
+      --primary:#374151;
+      --primary-hover:#1f2937;
+      --pos-bg:#eef2ff; --pos-fg:#3730a3; --pos-border:#c7d2fe;
+      --neg-bg:#fef2f2; --neg-fg:#7f1d1d; --neg-border:#fecaca;
+      --theme-name:"Slate";
     }
 
     html,body{ background:var(--bg); }
@@ -36,9 +59,23 @@
       padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
     }
 
-    header{ padding: 18px 0 8px; }
+    header{ padding: 18px 0 8px; display:flex; align-items:center; gap:12px; justify-content:space-between; }
     h1{ font-size: clamp(22px, 5vw, 28px); margin: 0; }
-    p.lead{ color: var(--muted); margin: 6px 0 0; }
+    p.lead{ color: var(--muted); margin: 2px 0 0; }
+
+    .theme-switch{
+      display:flex; gap:8px; align-items:center;
+      font-size:14px; color:var(--muted);
+    }
+    .chip{
+      border:1px solid var(--border);
+      background:#fff;
+      padding:6px 10px;
+      border-radius:999px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .chip.active{ border-color:var(--primary); color:var(--primary); font-weight:600; }
 
     .card{
       background: var(--card);
@@ -96,9 +133,11 @@
     .result{ margin-top: 10px; font-size: 18px; }
     .gain-badge{
       display:inline-block; font-size:13px; padding:4px 8px; border-radius:999px;
-      margin-top:6px; background:#e9f6ec; color:#145a1a; border:1px solid #cfe8d3; font-weight:600;
+      margin-top:6px; background:var(--pos-bg); color:var(--pos-fg); border:1px solid var(--pos-border); font-weight:600;
     }
-    .loss-badge{ background:#fdeaea; color:#7a1b1b; border-color:#f5c8c8; }
+    .loss-badge{
+      background:var(--neg-bg); color:var(--neg-fg); border-color:var(--neg-border);
+    }
 
     /* Collapsible Investment Pot */
     details{
@@ -137,7 +176,7 @@
       font-size: 15px;
     }
     th, td{ padding:10px 8px; border-bottom:1px solid var(--border); }
-    thead th{ font-weight:700; color:#444; background:#fafafa; }
+    thead th{ font-weight:700; color:#374151; background:#f9fafb; }
     tbody tr:nth-child(even){ background:#fcfcfc; }
     tbody tr:hover{ background:#f5f7f5; }
     td:last-child{ width:1%; white-space:nowrap; }
@@ -147,8 +186,18 @@
 </head>
 <body>
   <header>
-    <h1>What's the Cost?</h1>
-    <p class="lead">See the true cost of spending vs investing.</p>
+    <div>
+      <h1>What's the Cost?</h1>
+      <p class="lead">See the true cost of spending vs investing.</p>
+    </div>
+
+    <!-- Theme switcher -->
+    <div class="theme-switch">
+      Theme:
+      <span class="chip" data-theme="ocean">Ocean</span>
+      <span class="chip" data-theme="plum">Plum</span>
+      <span class="chip" data-theme="slate">Slate</span>
+    </div>
   </header>
 
   <!-- Calculator Card -->
@@ -228,7 +277,32 @@
   </div>
 
   <script>
-    // Shared currency formatter
+    // -------- Theme handling (remember choice) --------
+    const THEME_KEY = 'wtc_theme';
+    function applyTheme(name){
+      const root = document.documentElement;
+      const chips = document.querySelectorAll('.chip');
+      // Map "ocean" -> default (no data-theme) to keep blue theme as base
+      if(name === 'ocean'){ root.removeAttribute('data-theme'); }
+      else { root.setAttribute('data-theme', name); }
+      localStorage.setItem(THEME_KEY, name);
+      chips.forEach(c => c.classList.toggle('active', c.dataset.theme === name));
+      // Update theme-color meta for nicer status bar color on mobile
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if(meta){
+        const cs = getComputedStyle(document.documentElement);
+        meta.setAttribute('content', cs.getPropertyValue('--primary').trim() || '#2563eb');
+      }
+    }
+    function initTheme(){
+      const saved = localStorage.getItem(THEME_KEY) || 'ocean';
+      applyTheme(saved);
+      document.querySelectorAll('.chip').forEach(chip=>{
+        chip.addEventListener('click', ()=> applyTheme(chip.dataset.theme));
+      });
+    }
+
+    // -------- Shared currency formatter --------
     const fmt = new Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR' });
 
     // ---------- Calculator ----------
@@ -355,17 +429,18 @@
 
     // Init
     window.addEventListener('DOMContentLoaded', ()=>{
+      initTheme();
       renderPot();
       const pr = document.getElementById('potRate');
       pr && pr.addEventListener('input', renderPot);
     });
+
+    // ---- Service worker registration (kept from previous step) ----
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
+      });
+    }
   </script>
-  <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(console.error);
-    });
-  }
-</script>
 </body>
 </html>
