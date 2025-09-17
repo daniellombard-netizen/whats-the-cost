@@ -29,6 +29,7 @@
       --primary:#374151; --primary-hover:#1f2937;
       --pos-bg:#eef2ff; --pos-fg:#3730a3; --pos-border:#c7d2fe;
     }
+
     html,body{ background:var(--bg); }
     body{
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
@@ -37,23 +38,45 @@
     }
 
     /* Header */
-    header{ position:relative; padding:18px 0 8px; text-align:center; }
+    header{ padding:18px 0 8px; text-align:center; position:relative; }
     h1{ font-size:clamp(22px,5vw,28px); margin:0; }
     p.lead{ color:var(--muted); margin:2px 0 0; }
 
-    .settings-btn{
-      position:absolute; right:0; top:12px; background:#fff; border:1px solid var(--border);
-      border-radius:999px; padding:8px 10px; box-shadow:var(--shadow); cursor:pointer;
-      display:inline-flex; align-items:center; gap:6px; color:var(--muted); font-size:14px;
+    /* Tiny cog button (icon-only) fixed top-right */
+    .settings-icon{
+      position: fixed;
+      right: 16px;
+      top: 16px;
+      z-index: 60;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fff;
+      box-shadow: var(--shadow);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--muted);
+      padding: 0;
     }
-    .settings-btn:active{ transform:translateY(1px); }
-    .gear{ font-weight:700; }
+    .settings-icon:active{ transform: translateY(1px); }
 
     /* Settings panel */
     .settings-panel{
-      position:fixed; right:16px; top:56px; z-index:50; background:#fff; border:1px solid var(--border);
-      border-radius:12px; box-shadow:var(--shadow); padding:12px 12px 14px;
-      width:min(280px,calc(100vw - 32px)); display:none;
+      position: fixed;
+      right: 16px;
+      top: 64px;
+      z-index: 50;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 12px 12px 14px;
+      width: min(280px, calc(100vw - 32px));
+      display: none;
     }
     .settings-panel.open{ display:block; }
     .panel-title{ font-weight:700; margin:2px 0 10px; }
@@ -63,16 +86,6 @@
       cursor:pointer; user-select:none; font-size:14px; color:var(--muted);
     }
     .chip.active{ border-color:var(--primary); color:var(--primary); font-weight:600; }
-
-    /* Auth row */
-    .auth-row{
-      margin:8px auto 0; display:flex; gap:8px; justify-content:center; align-items:center;
-      color:var(--muted); font-size:14px; flex-wrap:wrap;
-    }
-    .pill{
-      padding:8px 12px; border-radius:999px; border:1px solid var(--border);
-      background:#fff; cursor:pointer;
-    }
 
     /* Cards */
     .card{ background:var(--card); border:1px solid var(--border); border-radius:14px;
@@ -87,12 +100,14 @@
       padding:12px 14px; font-size:17px; border:1px solid var(--border); border-radius:10px;
       background:#fff; width:100%; box-sizing:border-box;
     }
-    button{
+
+    /* Generic buttons but NOT the settings icon */
+    button:not(.settings-icon){
       padding:13px 16px; font-size:16px; background:var(--primary); color:#fff; border:none;
       border-radius:10px; cursor:pointer; transition:transform .02s ease, background .15s ease; width:100%;
     }
-    button:hover{ background:var(--primary-hover); }
-    button:active{ transform:translateY(1px); }
+    button:not(.settings-icon):hover{ background:var(--primary-hover); }
+    button:not(.settings-icon):active{ transform:translateY(1px); }
     .btn-secondary{ background:#e9e9e9; color:#111; }
 
     .result{ margin-top:10px; font-size:18px; }
@@ -122,93 +137,15 @@
 
     .tip{ color:#666; font-size:14px; margin-top:6px; }
   </style>
-
-  <!-- Firebase SDK (CDN, modular) -->
-  <script type="module">
-    // Your Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyB4wjsVAQnXECdBk4F1YQIo6J-MWKDlpUE",
-      authDomain: "whats-the-cost-f0274.firebaseapp.com",
-      projectId: "whats-the-cost-f0274",
-      storageBucket: "whats-the-cost-f0274.firebasestorage.app",
-      messagingSenderId: "560146001776",
-      appId: "1:560146001776:web:ca89074703684d3e86e9b5",
-      measurementId: "G-RVXM3VJ6E3"
-    };
-
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import {
-      getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-    import {
-      getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, enableIndexedDbPersistence
-    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-
-    // Init
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db   = getFirestore(app);
-    enableIndexedDbPersistence(db).catch(()=>{}); // offline cache for Firestore
-
-    // ---- Auth UI wiring ----
-    window.addEventListener('DOMContentLoaded', () => {
-      const authRow = document.getElementById('authRow');
-      const signInBtn = document.getElementById('googleBtn');
-      const signOutBtn = document.getElementById('signOutBtn');
-      const who = document.getElementById('who');
-
-      signInBtn.addEventListener('click', async () => {
-        try {
-          await signInWithPopup(auth, new GoogleAuthProvider());
-        } catch (e) {
-          alert('Sign-in failed: ' + (e.message || e));
-        }
-      });
-      signOutBtn.addEventListener('click', () => signOut(auth));
-
-      let unsub = null; // Firestore listener cleanup
-
-      onAuthStateChanged(auth, (user) => {
-        if (unsub) { unsub(); unsub = null; }
-        if (user) {
-          // Signed in: show sign-out, name; render from cloud
-          signInBtn.style.display = 'none';
-          signOutBtn.style.display = '';
-          who.style.display = '';
-          who.textContent = `Signed in as ${user.displayName || user.email}`;
-
-          // live-listen to user's entries
-          const col = collection(db, 'users', user.uid, 'entries');
-          unsub = onSnapshot(col, (snap) => {
-            const list = [];
-            snap.forEach(d => list.push({ id:d.id, ...d.data() }));
-            renderPotCloud(list); // defined below
-          });
-        } else {
-          // Signed out: show sign-in; render from localStorage
-          signInBtn.style.display = '';
-          signOutBtn.style.display = 'none';
-          who.style.display = 'none';
-          who.textContent = '';
-          renderPotLocal(); // defined below
-        }
-      });
-
-      // expose for add/delete handlers to check auth
-      window._getAuth = () => auth;
-      window._getDb   = () => db;
-      window._getUnsub= () => unsub;
-    });
-  </script>
 </head>
 <body>
   <header>
     <h1>What's the Cost?</h1>
     <p class="lead">See the true cost of spending vs investing.</p>
-    <button class="settings-btn" id="settingsBtn" aria-haspopup="true" aria-expanded="false" aria-controls="settingsPanel">
-      <span class="gear">⚙︎</span> Settings
-    </button>
   </header>
+
+  <!-- Tiny gear button -->
+  <button class="settings-icon" id="settingsBtn" aria-haspopup="true" aria-expanded="false" aria-controls="settingsPanel" title="Settings">⚙︎</button>
 
   <!-- Settings Panel -->
   <div class="settings-panel" id="settingsPanel" role="dialog" aria-modal="false" aria-label="Settings">
@@ -218,13 +155,6 @@
       <span class="chip" data-theme="plum">Plum</span>
       <span class="chip" data-theme="slate">Slate</span>
     </div>
-  </div>
-
-  <!-- Auth Row -->
-  <div class="auth-row" id="authRow">
-    <button class="pill" id="googleBtn">Sign in with Google</button>
-    <button class="pill" id="signOutBtn" style="display:none;">Sign out</button>
-    <span id="who" style="display:none;"></span>
   </div>
 
   <!-- Calculator Card -->
@@ -357,7 +287,7 @@
       el && el.addEventListener('keydown', e=>{ if(e.key==='Enter'){ calculate(); } });
     });
 
-    /* ---------- Investment Pot: local + cloud ---------- */
+    /* ---------- Investment Pot (local only) ---------- */
     const POT_KEY = 'oc_pot_entries_v1';
     function loadLocal(){ try{ return JSON.parse(localStorage.getItem(POT_KEY)||'[]'); }catch{ return []; } }
     function saveLocal(list){ localStorage.setItem(POT_KEY, JSON.stringify(list)); }
@@ -369,7 +299,8 @@
       return entry.amount*Math.pow(1+r,t);
     }
 
-    function renderPotRows(list){
+    function renderPot(){
+      const list = loadLocal();
       const tbody=document.getElementById('potBody');
       const potRate=parseFloat(document.getElementById('potRate').value)||0;
       tbody.innerHTML=''; let total=0;
@@ -386,13 +317,7 @@
         const tdDel=tr.lastElementChild;
         const btn=document.createElement('button');
         btn.textContent='Delete'; btn.className='btn-secondary';
-
-        // If cloud doc id exists, delete by id; else delete by index (local)
-        if(e.id){
-          btn.onclick=()=> deleteCloud(e.id);
-        }else{
-          btn.onclick=()=> { const list=loadLocal().filter((_,i)=>i!==idx); saveLocal(list); renderPotLocal(); };
-        }
+        btn.onclick=()=>{ const updated=loadLocal().filter((_,i)=>i!==idx); saveLocal(updated); renderPot(); };
         tdDel.appendChild(btn);
         tbody.appendChild(tr);
       });
@@ -402,62 +327,21 @@
       document.getElementById('potSummaryTotal').textContent=fmt.format(total);
     }
 
-    function renderPotLocal(){
-      const list=loadLocal();
-      renderPotRows(list);
-    }
-
-    // Cloud helpers are added after auth is ready (exposed by the module script)
-    async function addToPotFromCalculator(){
+    function addToPotFromCalculator(){
       const amount=parseFloat(document.getElementById('purchase').value);
       if(isNaN(amount)||amount===0){ alert('Enter a non-zero purchase amount first (use negative for withdrawal).'); return; }
       const note=document.getElementById('potNote').value.trim();
-      const entry={ amount, date:new Date().toISOString(), note };
-
-      const auth = window._getAuth && window._getAuth();
-      if(auth && auth.currentUser){
-        const db = window._getDb();
-        const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js');
-        await addDoc(collection(db, 'users', auth.currentUser.uid, 'entries'), entry);
-        document.getElementById('potNote').value='';
-        // snapshot listener will re-render
-      }else{
-        const list=loadLocal(); list.push(entry); saveLocal(list);
-        document.getElementById('potNote').value='';
-        renderPotLocal();
-      }
+      const list=loadLocal(); list.push({ amount, date:new Date().toISOString(), note });
+      saveLocal(list);
+      document.getElementById('potNote').value='';
+      renderPot();
     }
-    async function deleteCloud(id){
-      const auth = window._getAuth && window._getAuth();
-      if(!(auth && auth.currentUser)) return;
-      const db = window._getDb();
-      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js');
-      await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'entries', id));
-      // snapshot listener will re-render
-    }
-
-    // Re-render on pot rate change (both modes)
-    document.addEventListener('DOMContentLoaded', ()=>{
-      const pr=document.getElementById('potRate');
-      pr && pr.addEventListener('input', ()=>{
-        const auth = window._getAuth && window._getAuth();
-        if(auth && auth.currentUser){
-          // cloud list re-renders via snapshot, but values depend on rate -> rebuild using last snapshot rows
-          // Easiest: trigger a synthetic re-render by reusing the current table data:
-          // We can't access snapshot here, so just force a minimal change:
-          const rows=[...document.querySelectorAll('#potBody tr')].length;
-          // If there are rows, fire a no-op to cause onSnapshot to re-run; otherwise just render local (no-op)
-          // (onSnapshot will fire automatically when cache/state changes; as a fallback we can just recalc by fetching again later)
-        }else{
-          renderPotLocal();
-        }
-      });
-    });
 
     /* ---------- Init ---------- */
     window.addEventListener('DOMContentLoaded', ()=>{
       initThemeUI();
-      renderPotLocal(); // will be replaced by cloud render when user signs in
+      renderPot();
+      document.getElementById('potRate')?.addEventListener('input', renderPot);
     });
 
     /* ---------- Service worker ---------- */
