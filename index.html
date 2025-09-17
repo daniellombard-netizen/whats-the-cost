@@ -26,27 +26,21 @@
       --primary:#2563eb;
       --primary-hover:#1d4ed8;
 
-      /* Gain/Loss badges (blue for gain, soft red for loss) */
+      /* Gain/Loss badges */
       --pos-bg:#e8f0fe; --pos-fg:#1e3a8a; --pos-border:#bfdbfe;
       --neg-bg:#fef2f2; --neg-fg:#7f1d1d; --neg-border:#fecaca;
     }
 
     /* Plum theme */
     :root[data-theme="plum"]{
-      --primary:#7c3aed;
-      --primary-hover:#6d28d9;
+      --primary:#7c3aed; --primary-hover:#6d28d9;
       --pos-bg:#f3e8ff; --pos-fg:#4c1d95; --pos-border:#e9d5ff;
-      --neg-bg:#fef2f2; --neg-fg:#7f1d1d; --neg-border:#fecaca;
-      --theme-name:"Plum";
     }
 
     /* Slate theme (neutral greys) */
     :root[data-theme="slate"]{
-      --primary:#374151;
-      --primary-hover:#1f2937;
+      --primary:#374151; --primary-hover:#1f2937;
       --pos-bg:#eef2ff; --pos-fg:#3730a3; --pos-border:#c7d2fe;
-      --neg-bg:#fef2f2; --neg-fg:#7f1d1d; --neg-border:#fecaca;
-      --theme-name:"Slate";
     }
 
     html,body{ background:var(--bg); }
@@ -59,14 +53,51 @@
       padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
     }
 
-    header{ padding: 18px 0 8px; display:flex; align-items:center; gap:12px; justify-content:space-between; }
+    /* Header: centered title + top-right settings button */
+    header{
+      position: relative;
+      padding: 18px 0 8px;
+      text-align: center;
+    }
     h1{ font-size: clamp(22px, 5vw, 28px); margin: 0; }
     p.lead{ color: var(--muted); margin: 2px 0 0; }
 
-    .theme-switch{
-      display:flex; gap:8px; align-items:center;
-      font-size:14px; color:var(--muted);
+    .settings-btn{
+      position: absolute;
+      right: 0;
+      top: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 10px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 14px;
     }
+    .settings-btn:active{ transform: translateY(1px); }
+    .gear{ font-weight: 700; }
+
+    /* Settings panel */
+    .settings-panel{
+      position: fixed;
+      right: 16px;
+      top: 56px;
+      z-index: 50;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 12px 12px 14px;
+      width: min(280px, calc(100vw - 32px));
+      display: none;
+    }
+    .settings-panel.open{ display: block; }
+    .panel-title{ font-weight:700; margin: 2px 0 10px; }
+    .chip-row{ display:flex; flex-wrap: wrap; gap:8px; }
     .chip{
       border:1px solid var(--border);
       background:#fff;
@@ -74,6 +105,8 @@
       border-radius:999px;
       cursor:pointer;
       user-select:none;
+      font-size:14px;
+      color:var(--muted);
     }
     .chip.active{ border-color:var(--primary); color:var(--primary); font-weight:600; }
 
@@ -135,9 +168,7 @@
       display:inline-block; font-size:13px; padding:4px 8px; border-radius:999px;
       margin-top:6px; background:var(--pos-bg); color:var(--pos-fg); border:1px solid var(--pos-border); font-weight:600;
     }
-    .loss-badge{
-      background:var(--neg-bg); color:var(--neg-fg); border-color:var(--neg-border);
-    }
+    .loss-badge{ background:var(--neg-bg); color:var(--neg-fg); border-color:var(--neg-border); }
 
     /* Collapsible Investment Pot */
     details{
@@ -186,19 +217,22 @@
 </head>
 <body>
   <header>
-    <div>
-      <h1>What's the Cost?</h1>
-      <p class="lead">See the true cost of spending vs investing.</p>
-    </div>
+    <h1>What's the Cost?</h1>
+    <p class="lead">See the true cost of spending vs investing.</p>
+    <button class="settings-btn" id="settingsBtn" aria-haspopup="true" aria-expanded="false" aria-controls="settingsPanel">
+      <span class="gear">⚙︎</span> Settings
+    </button>
+  </header>
 
-    <!-- Theme switcher -->
-    <div class="theme-switch">
-      Theme:
+  <!-- Settings Panel -->
+  <div class="settings-panel" id="settingsPanel" role="dialog" aria-modal="false" aria-label="Settings">
+    <div class="panel-title">Theme</div>
+    <div class="chip-row">
       <span class="chip" data-theme="ocean">Ocean</span>
       <span class="chip" data-theme="plum">Plum</span>
       <span class="chip" data-theme="slate">Slate</span>
     </div>
-  </header>
+  </div>
 
   <!-- Calculator Card -->
   <div class="card">
@@ -281,24 +315,50 @@
     const THEME_KEY = 'wtc_theme';
     function applyTheme(name){
       const root = document.documentElement;
-      const chips = document.querySelectorAll('.chip');
-      // Map "ocean" -> default (no data-theme) to keep blue theme as base
+      // "ocean" is default (no data-theme attribute)
       if(name === 'ocean'){ root.removeAttribute('data-theme'); }
       else { root.setAttribute('data-theme', name); }
       localStorage.setItem(THEME_KEY, name);
-      chips.forEach(c => c.classList.toggle('active', c.dataset.theme === name));
-      // Update theme-color meta for nicer status bar color on mobile
+
+      // Reflect active chip
+      document.querySelectorAll('.chip').forEach(c =>
+        c.classList.toggle('active', c.dataset.theme === name)
+      );
+
+      // Update status bar color on mobile
       const meta = document.querySelector('meta[name="theme-color"]');
       if(meta){
         const cs = getComputedStyle(document.documentElement);
         meta.setAttribute('content', cs.getPropertyValue('--primary').trim() || '#2563eb');
       }
     }
-    function initTheme(){
+    function initThemeUI(){
       const saved = localStorage.getItem(THEME_KEY) || 'ocean';
       applyTheme(saved);
+
       document.querySelectorAll('.chip').forEach(chip=>{
-        chip.addEventListener('click', ()=> applyTheme(chip.dataset.theme));
+        chip.addEventListener('click', ()=>{
+          applyTheme(chip.dataset.theme);
+        });
+      });
+
+      // Settings open/close
+      const btn = document.getElementById('settingsBtn');
+      const panel = document.getElementById('settingsPanel');
+      const toggle = () => {
+        const open = !panel.classList.contains('open');
+        panel.classList.toggle('open', open);
+        btn.setAttribute('aria-expanded', String(open));
+      };
+      btn.addEventListener('click', toggle);
+
+      // Click-outside to close
+      document.addEventListener('click', (e)=>{
+        if(!panel.classList.contains('open')) return;
+        if(e.target === btn || btn.contains(e.target)) return;
+        if(panel.contains(e.target)) return;
+        panel.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
       });
     }
 
@@ -429,13 +489,13 @@
 
     // Init
     window.addEventListener('DOMContentLoaded', ()=>{
-      initTheme();
+      initThemeUI();
       renderPot();
       const pr = document.getElementById('potRate');
       pr && pr.addEventListener('input', renderPot);
     });
 
-    // ---- Service worker registration (kept from previous step) ----
+    // ---- Service worker registration ----
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
