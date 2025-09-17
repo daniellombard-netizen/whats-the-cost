@@ -214,6 +214,46 @@
 
     .tip{ color:#666; font-size: 14px; margin-top:6px; }
   </style>
+<!-- Firebase SDK (modular CDN build) -->
+<script type="module">
+  // Your config (from Firebase console)
+  const firebaseConfig = {
+    apiKey: "AIzaSyB4wjsVAQnXECdBk4F1YQIo6J-MWKDlpUE",
+    authDomain: "whats-the-cost-f0274.firebaseapp.com",
+    projectId: "whats-the-cost-f0274",
+    storageBucket: "whats-the-cost-f0274.firebasestorage.app",
+    messagingSenderId: "560146001776",
+    appId: "1:560146001776:web:ca89074703684d3e86e9b5",
+    measurementId: "G-RVXM3VJ6E3"
+  };
+
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+  import { getFirestore } 
+    from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+  // Init Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
+  // Add a quick auth test in console:
+  window.testSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    console.log("Signed in:", result.user.displayName, result.user.email);
+  };
+  window.testSignOut = async () => {
+    await signOut(auth);
+    console.log("Signed out");
+  };
+
+  // Monitor sign-in state
+  onAuthStateChanged(auth, (user)=>{
+    console.log("Auth state:", user ? user.email : "signed out");
+  });
+</script>
 </head>
 <body>
   <header>
